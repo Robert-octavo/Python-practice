@@ -1,3 +1,4 @@
+from email import message
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_jwt import JWT, jwt_required
@@ -32,6 +33,11 @@ class Item(Resource):
         item = {'name': name, 'price': data['price']}
         items.append(item)
         return item, 201 #This code is for CREATED
+
+    def delete(self, name):
+        global items
+        items = list(filter(lambda x: x['name'] != name, items)) #create a new list with all the element except the one that match
+        return {'message': 'Item deleted'}
 
 class ItemList(Resource):
     def get(self):
