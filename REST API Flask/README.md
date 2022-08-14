@@ -1,4 +1,4 @@
-# Python
+# Python 🐍
 ## Description
 
 This project was made with python 3.9.12
