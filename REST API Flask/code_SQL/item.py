@@ -1,4 +1,3 @@
-from multiprocessing import connection
 import sqlite3
 from unittest import result
 from flask_restful import Resource, reqparse
@@ -46,7 +45,15 @@ class Item(Resource):
         # data = request.get_json()
         data = Item.parser.parse_args()
         item = {'name': name, 'price': data['price']}
-        
+        try:
+            self.insert(item)
+        except:
+            return {"message": "An error occurred inserting the item"}, 500 #Internal server error
+
+        return item, 201 #This code is for CREATED
+
+    @classmethod
+    def insert(cls, item):
         connection = sqlite3.connect('data.db')
         cursor = connection.cursor()
 
@@ -55,8 +62,6 @@ class Item(Resource):
 
         connection.commit()
         connection.close()
-
-        return item, 201 #This code is for CREATED
 
     def delete(self, name):
         connection = sqlite3.connect('data.db')
@@ -74,16 +79,42 @@ class Item(Resource):
         
         data = Item.parser.parse_args()
         #data = request.get_json()
-        item = next(filter(lambda x: x['name'] == name, items), None)
+        item = Item.find_by_name(name)
+        updated_item = {'name': name, 'price': data['price']}
+
         if item is None:
-            # the item does not exist -- new
-            item = {'name': name, 'price': data['price']}
-            items.append(item)
+            try:
+                Item.insert(updated_item)
+            except:
+                return {"message": "An error ocurred inserting the item"}, 500
         else:
-            # update the item
-            item.update(data)
-        return item
+            try:
+                self.update(updated_item)
+            except:
+                return {"message": "An error ocurred Updating the item"}, 500
+        return updated_item
+
+    @classmethod
+    def update(cls, item):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "UPDATE items SET price=? WHERE name=?"
+        cursor.execute(query, (item['price'], item['name']))
+
+        connection.commit()
+        connection.close()
 
 class ItemList(Resource):
     def get(self):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM items"
+        result = cursor.execute(query)
+        items = []
+        for row in result:
+            items.append({'name': row[0], 'price': row[1]})
+
+        connection.close()
         return {'items': items}
