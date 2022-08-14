@@ -13,5 +13,5 @@ Postman was use to test the API
 ## CODE folder
 in this folder you can run the app.py, this use dictionaries as a storage
 
-##CODE_SQL folder
+## CODE_SQL folder
 in this folder i use SQLite to create a db and tables for the practice
