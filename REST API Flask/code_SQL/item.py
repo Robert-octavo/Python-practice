@@ -1,3 +1,4 @@
+from multiprocessing import connection
 import sqlite3
 from unittest import result
 from flask_restful import Resource, reqparse
@@ -17,6 +18,14 @@ class Item(Resource):
 
     @jwt_required()
     def get(self, name):
+        item = self.find_by_name(name)
+        if item:
+            return item
+        return {'message': 'Item not found'}, 404
+
+    @classmethod
+    def find_by_name(cls, name):
+        """TODO: find a item by its name (Unique) """
         connection = sqlite3.connect('data.db')
         cursor = connection.cursor()
 
@@ -27,22 +36,38 @@ class Item(Resource):
 
         if row:
             return {'item': {'name': row[0], 'price': row[1]}}
-        return {'message': 'Item not found'}, 404
+
 
     def post(self, name):
         # For unique name item
-        if next(filter(lambda x: x['name'] == name, items), None) is not None:
+        if self.find_by_name(name) is not None:
             return ({'message': "An item with name '{}' already exists.".format(name)}, 400)
 
         # data = request.get_json()
         data = Item.parser.parse_args()
         item = {'name': name, 'price': data['price']}
-        items.append(item)
+        
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "INSERT INTO items VALUES (?, ?)"
+        cursor.execute(query, (item['name'], item['price']))
+
+        connection.commit()
+        connection.close()
+
         return item, 201 #This code is for CREATED
 
     def delete(self, name):
-        global items
-        items = list(filter(lambda x: x['name'] != name, items)) #create a new list with all the element except the one that match
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "DELETE FROM items WHERE name=?"
+        cursor.execute(query, (name,))
+
+        connection.commit()
+        connection.close()
+
         return {'message': 'Item deleted'}
 
     def put(self, name):
